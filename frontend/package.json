@@ -1,0 +1,21 @@
+{
+    "dependencies": {
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "react-router-dom": "^7.7.1",
+        "redux": "^5.0.1",
+        "@reduxjs/toolkit": "^2.8.2",
+        "axios": "^1.4.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "@types/react": "^19.1.8",
+        "@types/react-dom": "^19.1.6"
+    },
+    "scripts": {
+        "start": "start",
+        "build": "build",
+        "test": "test",
+        "eject": "eject"
+    }
+}
