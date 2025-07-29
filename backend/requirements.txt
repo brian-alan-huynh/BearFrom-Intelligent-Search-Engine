@@ -3,5 +3,13 @@ fastapi
 uvicorn
 python-dotenv
 botasaurus
-supabase
 pinecone[asyncio]
+fastapi-csrf-protect
+redis[hiredis]
+slowapi
+authlib
+bcrypt
+pydantic
+pyotp
+psycopg2-binary
+sqlalchemy
