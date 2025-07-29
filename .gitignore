@@ -22,3 +22,4 @@ build/
 logs/
 /uploads/
 build/
+.DS_Store
