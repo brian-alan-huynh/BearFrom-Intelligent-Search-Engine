@@ -2,8 +2,7 @@ requests
 fastapi
 uvicorn
 python-dotenv
-botasaurus
-pinecone[asyncio]
+pinecone
 fastapi-csrf-protect
 redis[hiredis]
 slowapi
@@ -11,5 +10,4 @@ authlib
 bcrypt
 pydantic
 pyotp
-psycopg2-binary
 sqlalchemy
