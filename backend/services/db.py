@@ -25,7 +25,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
     email = Column(String, nullable=False, unique=True)
-    pfp_key = Column(String, nullable=True, unique=True) # For fetching profile picture from S3
+    pfp_key = Column(String, nullable=True, unique=True) # Key for fetching profile picture stored in S3
     created_at = Column(DateTime, default=datetime.now(), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), nullable=False)
     last_login_at = Column(DateTime, default=datetime.now(), nullable=False)
