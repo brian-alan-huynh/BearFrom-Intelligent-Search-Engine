@@ -7,7 +7,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 from typing import Optional
-from fastapi import HTTPException
 
 load_dotenv()
 env = os.getenv
@@ -26,10 +25,10 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
     email = Column(String, nullable=False, unique=True)
+    pfp_key = Column(String, nullable=True, unique=True) # For fetching profile picture from S3
     created_at = Column(DateTime, default=datetime.now(), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), nullable=False)
     last_login_at = Column(DateTime, default=datetime.now(), nullable=False)
-    pfp_key = Column(String, nullable=True, unique=True) # For fetching profile picture from S3
 
 
 class UserPreferences(Base):
@@ -39,6 +38,33 @@ class UserPreferences(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     theme = Column(String, default="light", nullable=False) # Light, Dark, Beige
     safesearch = Column(String, default="moderate", nullable=False) # Off, Moderate, Strict
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), nullable=False)
+
+class UserSearchHistory(Base):
+    __tablename__ = "user_search_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    query = Column(String, nullable=False)
+    queried_at = Column(DateTime, default=datetime.now(), nullable=False)
+
+
+class UserFeedback(Base):
+    __tablename__ = "user_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    feedback = Column(String, nullable=False)
+    submitted_at = Column(DateTime, default=datetime.now(), nullable=False)
+
+
+class DeveloperResponse(Base):
+    __tablename__ = "developer_response"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    response = Column(String, nullable=False)
+    submitted_at = Column(DateTime, default=datetime.now(), nullable=False)
 
 
 class Database:
@@ -97,7 +123,6 @@ class Database:
             username: Optional[str] = None, 
             password: Optional[str] = None, 
             email: Optional[str] = None, 
-            updated_at: Optional[datetime] = None,
             last_login_at: Optional[datetime] = None,
             pfp_key: Optional[str] = None
         ) -> User:
@@ -110,22 +135,16 @@ class Database:
             if not db_user:
                 return None
             
-            if updated_at:
-                db_user.updated_at = updated_at
-            
-            else:
-                if username:
-                    db_user.username = username
-                if password:
-                    db_user.password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-                if email:
-                    db_user.email = email
-                if last_login_at:
-                    db_user.last_login_at = last_login_at
-                if pfp_key:
-                    db_user.pfp_key = pfp_key
-                
-                db_user.updated_at = datetime.now()
+            if username:
+                db_user.username = username
+            if password:
+                db_user.password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            if email:
+                db_user.email = email
+            if last_login_at:
+                db_user.last_login_at = last_login_at
+            if pfp_key:
+                db_user.pfp_key = pfp_key
 
             db.commit()
             db.refresh(db_user)
@@ -220,8 +239,6 @@ class Database:
             
             db.commit()
             db.refresh(db_user_preference)
-            
-            self.update_user(user_id=user_id, updated_at=datetime.now())
 
             return db_user_preference
 
@@ -255,7 +272,7 @@ class Database:
 
 
     # Authentication
-    def login_user_before_successful_2fa(self, username_or_email: str, password: str) -> bool:
+    def check_login_credentials(self, username_or_email: str, password: str) -> bool:
         db = self.SessionLocal()
 
         try:
@@ -278,7 +295,7 @@ class Database:
         finally:
             db.close()
 
-    def login_user_after_successful_2fa(self, username_or_email: str) -> User:
+    def login_after_successful_2fa(self, username_or_email: str) -> User:
         db = self.SessionLocal()
 
         try:
@@ -288,7 +305,6 @@ class Database:
                 db_user = db.query(User).filter(User.email == username_or_email).first()
 
             db_user.last_login_at = datetime.now()
-            db_user.updated_at = datetime.now()
 
             db.commit()
             db.refresh(db_user)
@@ -300,5 +316,62 @@ class Database:
 
         finally:
             db.close()
+            
+    def log_search_query(self, user_id: int, query: str) -> UserSearchHistory:
+        db = self.SessionLocal()
+
+        try:
+            db_user_search_history = UserSearchHistory(user_id=user_id, query=query)
+
+            db.add(db_user_search_history)
+            db.commit()
+            db.refresh(db_user_search_history)
+
+            return db_user_search_history
+        
+        except Exception as e:
+            db.rollback()
+            raise e
+        
+        finally:
+            db.close()
+
+    def log_user_feedback(self, user_id: int, feedback: str) -> UserFeedback:
+        db = self.SessionLocal()
+
+        try:
+            db_user_feedback = UserFeedback(user_id=user_id, feedback=feedback)
+
+            db.add(db_user_feedback)
+            db.commit()
+            db.refresh(db_user_feedback)
+
+            return db_user_feedback
+        
+        except Exception as e:
+            db.rollback()
+            raise e
+        
+        finally:
+            db.close()
+
+    def log_developer_response(self, user_id: int, response: str) -> DeveloperResponse:
+        db = self.SessionLocal()
+
+        try:
+            db_developer_response = DeveloperResponse(user_id=user_id, response=response)
+
+            db.add(db_developer_response)
+            db.commit()
+            db.refresh(db_developer_response)
+
+            return db_developer_response
+        
+        except Exception as e:
+            db.rollback()
+            raise e
+        
+        finally:
+            db.close()  
 
 db = Database()
