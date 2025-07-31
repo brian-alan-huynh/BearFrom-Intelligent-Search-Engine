@@ -1,16 +1,12 @@
-import redis
 import os
-
+from datetime import datetime
 from dotenv import load_dotenv
+from typing import Optional
+
+import redis
 
 load_dotenv()
 
-# Stores the user.id as soon as create_user() is called and the search history and user preferences for users that haven't logged in
-# When the user creates an account, the user row is returned with the user_id. store this returned user_id in redis. to access redis, look into the cookie and fetch the session id, then query redis to fetch the row that corresponds with that session_id, then fetch the user_id
-# if the user logs out, delete all session data of the corresponding session_id from redis
-# if user_id is not found in redis, the user is not logged in
-# every 60 days, destroy the cookie and its session_id row from redis to force the user to log out again
-# if the user isnt logged in and submits feedback, a developer response isn't needed and the user response sender will be anonymous
 redis_client = redis.Redis(
     host=os.getenv("REDIS_HOST"),
     port=os.getenv("REDIS_PORT"),
@@ -18,3 +14,43 @@ redis_client = redis.Redis(
     username="default",
     password=os.getenv("REDIS_USER_PASS"),
 )
+
+# After user logs in:
+#   Search history, theme, and safesearch data is recorded in AWS RDS
+#   user_id is updated in Redis from -1 to the assigned user_id
+def add_session(session_id: str) -> bool:
+    redis_client.hset(session_id, mapping={
+        "user_id": -1,
+        "logged_out_search_history": [],
+        "logged_out_theme": "light",
+        "logged_out_safesearch": "moderate",
+        "created_at": datetime.now(),
+    })
+
+    return True
+
+def get_session(session_id: str) -> dict:
+    return redis_client.hgetall(session_id)
+
+def modify_session(
+    session_id: str,
+    user_id: Optional[int] = None,
+    new_query: Optional[str] = None,
+    theme: Optional[str] = None,
+    safesearch: Optional[str] = None,
+) -> bool:
+    
+    if user_id:
+        redis_client.hset(session_id, "user_id", user_id)
+    if new_query:
+        redis_client.hset(
+            session_id, 
+            "logged_out_search_history", 
+            redis_client.hgetall(session_id).logged_out_search_history.append(new_query)
+        )
+    if theme:
+        redis_client.hset(session_id, "logged_out_theme", theme)
+    if safesearch:
+        redis_client.hset(session_id, "logged_out_safesearch", safesearch)
+    
+    return True

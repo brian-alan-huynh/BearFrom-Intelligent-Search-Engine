@@ -78,16 +78,25 @@ class Database:
     def create_user(
             self, 
             username: str, 
-            password: str, 
-            email: str
+            email: str,
+            provider: str,
+            provider_id: str,
+            password: Optional[str] = None, 
         ) -> User:
 
         db = self.SessionLocal()
 
         try:
-            password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            if password:
+                password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-            db_user = User(username=username, password=password, email=email)
+            db_user = User(
+                username=username, 
+                password=password,
+                email=email, 
+                provider=provider, 
+                provider_id=provider_id
+            )
 
             db.add(db_user)
             db.commit()
@@ -319,8 +328,9 @@ class Database:
 
         finally:
             db.close()
-            
-    def log_search_query(self, user_id: int, query: str) -> UserSearchHistory:
+
+    # UserSearchHistory table
+    def log_user_search(self, user_id: int, query: str) -> UserSearchHistory:
         db = self.SessionLocal()
 
         try:
@@ -338,7 +348,25 @@ class Database:
         
         finally:
             db.close()
+    
+    def read_user_search_history(self, user_id: int) -> UserSearchHistory:
+        db = self.SessionLocal()
 
+        try:
+            db_user_search_history = db.query(UserSearchHistory).filter(UserSearchHistory.user_id == user_id).all()
+
+            if not db_user_search_history:
+                return None
+
+            return db_user_search_history
+        
+        except Exception as e:
+            return f"Failed to read user search history ({e})"
+        
+        finally:
+            db.close()
+
+    # UserFeedback table
     def log_user_feedback(self, user_id: int, feedback: str) -> UserFeedback:
         db = self.SessionLocal()
 
@@ -357,7 +385,25 @@ class Database:
         
         finally:
             db.close()
+    
+    def read_user_feedback(self, user_id: int) -> UserFeedback:
+        db = self.SessionLocal()
 
+        try:
+            db_user_feedback = db.query(UserFeedback).filter(UserFeedback.user_id == user_id).all()
+
+            if not db_user_feedback:
+                return None
+
+            return db_user_feedback
+        
+        except Exception as e:
+            return f"Failed to read user feedback ({e})"
+        
+        finally:
+            db.close()
+
+    # DeveloperResponse table
     def log_developer_response(self, user_id: int, response: str) -> DeveloperResponse:
         db = self.SessionLocal()
 
@@ -376,5 +422,22 @@ class Database:
         
         finally:
             db.close()  
+    
+    def read_developer_response(self, user_id: int) -> DeveloperResponse:
+        db = self.SessionLocal()
+
+        try:
+            db_developer_response = db.query(DeveloperResponse).filter(DeveloperResponse.user_id == user_id).all()
+
+            if not db_developer_response:
+                return None
+
+            return db_developer_response
+        
+        except Exception as e:
+            return f"Failed to read developer response ({e})"
+        
+        finally:
+            db.close()
 
 db = Database()

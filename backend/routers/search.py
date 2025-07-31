@@ -1,0 +1,1 @@
+# also include brave suggest for predictive search; call useEffect each time the user types in a new word

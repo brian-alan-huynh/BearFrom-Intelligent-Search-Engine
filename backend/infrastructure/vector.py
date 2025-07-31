@@ -17,3 +17,15 @@ if not pc.has_index(index_name):
     )
     
 index = pc.Index(index_name)
+
+def convert_to_vector_embed(text: str) -> list[float]:
+    pass
+
+def add_to_vector_db(text: str, vector_embed: list[float]) -> bool:
+    pass
+
+def convert_query_to_vector_embed(query: str) -> list[float]:
+    pass
+
+def query_from_vector_db(query: str) -> list[str]:
+    pass
