@@ -3,6 +3,7 @@ fastapi
 uvicorn
 python-dotenv
 pinecone
+openai
 fastapi-csrf-protect
 redis[hiredis]
 slowapi

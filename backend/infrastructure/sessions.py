@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from typing import Optional
+import uuid
 
 import redis
 
@@ -18,7 +19,9 @@ redis_client = redis.Redis(
 # After user logs in:
 #   Search history, theme, and safesearch data is recorded in AWS RDS
 #   user_id is updated in Redis from -1 to the assigned user_id
-def add_session(session_id: str) -> bool:
+def add_new_session() -> str:
+    session_id = str(uuid.uuid4())
+    
     redis_client.hset(session_id, mapping={
         "user_id": -1,
         "logged_out_search_history": [],
@@ -27,7 +30,7 @@ def add_session(session_id: str) -> bool:
         "created_at": datetime.now(),
     })
 
-    return True
+    return session_id
 
 def get_session(session_id: str) -> dict:
     return redis_client.hgetall(session_id)

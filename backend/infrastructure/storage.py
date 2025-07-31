@@ -1,7 +1,7 @@
 import os
 import uuid
 from datetime import datetime
-#sqs
+#kafka
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
@@ -30,16 +30,6 @@ class S3Storage:
         return f"users/{user_id}/profile_pictures/{timestamp}_{unique_id}{file_extension}"
 
     async def upload_pfp(self, user_id: int, file: UploadFile) -> str:
-        """
-        Upload a profile picture to S3 and return the S3 key.
-        
-        Args:
-            user_id: The ID of the user
-            file: FastAPI UploadFile object containing the image
-            
-        Returns:
-            str: The S3 key for the uploaded file (to be stored in the User table at pfp_key column)
-        """
         try:
             file_extension = os.path.splitext(file.filename)[1].lower()
             

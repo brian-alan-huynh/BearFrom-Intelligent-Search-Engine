@@ -26,7 +26,7 @@ class User(Base):
     password = Column(String, nullable=True) # Nullable for OAuth users
     email = Column(String, nullable=False, unique=True, index=True)
     pfp_key = Column(String, nullable=True, unique=True) # Key for fetching profile picture stored in S3
-    provider = Column(String, nullable=False) # Google, Github, Microsoft, Local
+    provider = Column(String, nullable=False) # Google, Github, Local
     provider_id = Column(String, nullable=False, unique=True) # ID of 'local' for local users
     created_at = Column(DateTime, default=datetime.now(), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), nullable=False)
@@ -155,7 +155,7 @@ class Database:
             if last_login_at:
                 db_user.last_login_at = last_login_at
             if pfp_key:
-                db_user.pfp_key = pfp_key
+                db_user.pfp_key = pfp_key # If the user is changing their pfp, call storage.delete_pfp() to remove the old pfp, then get the key returned from upload_pfp and update it here
 
             db.commit()
             db.refresh(db_user)
@@ -282,7 +282,7 @@ class Database:
             db.close()
 
 
-    # Authentication
+    # Authentication (Local accounts only; Google and GitHub accounts are handled by OAuth)
     def check_login_credentials(self, username_or_email: str, password: str) -> bool:
         db = self.SessionLocal()
 
