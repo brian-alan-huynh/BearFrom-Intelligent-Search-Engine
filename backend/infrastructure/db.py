@@ -23,9 +23,11 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
-    password = Column(String, nullable=False)
-    email = Column(String, nullable=False, unique=True)
+    password = Column(String, nullable=True) # Nullable for OAuth users
+    email = Column(String, nullable=False, unique=True, index=True)
     pfp_key = Column(String, nullable=True, unique=True) # Key for fetching profile picture stored in S3
+    provider = Column(String, nullable=False) # Google, Github, Microsoft, Local
+    provider_id = Column(String, nullable=False, unique=True) # ID of 'local' for local users
     created_at = Column(DateTime, default=datetime.now(), nullable=False)
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), nullable=False)
     last_login_at = Column(DateTime, default=datetime.now(), nullable=False)
@@ -95,7 +97,7 @@ class Database:
 
         except Exception as e:
             db.rollback()
-            raise e
+            return f"Failed to create user ({e})"
 
         finally:
             db.close()
@@ -112,7 +114,7 @@ class Database:
             return db_user
 
         except Exception as e:
-            raise e
+            return f"Failed to read user ({e})"
 
         finally:
             db.close()
@@ -153,7 +155,7 @@ class Database:
 
         except Exception as e:
             db.rollback()
-            raise e
+            return f"Failed to update user ({e})"
 
         finally:
             db.close()
@@ -174,7 +176,7 @@ class Database:
 
         except Exception as e:
             db.rollback()
-            raise e
+            return f"Failed to delete user ({e})"
 
         finally:
             db.close()
@@ -195,7 +197,7 @@ class Database:
         
         except Exception as e:
             db.rollback()
-            raise e
+            return f"Failed to create user preference ({e})"
         
         finally:
             db.close()
@@ -212,7 +214,7 @@ class Database:
             return db_user_preference
         
         except Exception as e:
-            raise e
+            return f"Failed to read user preference ({e})"
 
         finally:
             db.close()
@@ -244,7 +246,7 @@ class Database:
 
         except Exception as e:
             db.rollback()
-            raise e
+            return f"Failed to update user preference ({e})"
 
         finally:
             db.close()
@@ -265,7 +267,7 @@ class Database:
 
         except Exception as e:
             db.rollback()
-            raise e
+            return f"Failed to delete user preference ({e})"
 
         finally:
             db.close()
@@ -290,7 +292,7 @@ class Database:
             return True
 
         except Exception as e:
-            raise e
+            return f"Failed to check login credentials ({e})"
 
         finally:
             db.close()
@@ -312,7 +314,8 @@ class Database:
             return db_user
 
         except Exception as e:
-            raise e
+            db.rollback()
+            return f"Failed to login after successful 2FA ({e})"
 
         finally:
             db.close()
@@ -331,7 +334,7 @@ class Database:
         
         except Exception as e:
             db.rollback()
-            raise e
+            return f"Failed to log search query ({e})"
         
         finally:
             db.close()
@@ -350,7 +353,7 @@ class Database:
         
         except Exception as e:
             db.rollback()
-            raise e
+            return f"Failed to log user feedback ({e})"
         
         finally:
             db.close()
@@ -369,7 +372,7 @@ class Database:
         
         except Exception as e:
             db.rollback()
-            raise e
+            return f"Failed to log developer response ({e})"
         
         finally:
             db.close()  

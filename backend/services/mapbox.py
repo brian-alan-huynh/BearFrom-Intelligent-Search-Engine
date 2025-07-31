@@ -1,0 +1,1 @@
+# if mediawiki api has coordinates, apply the lat and long to mapbox and display the universal result

@@ -1,10 +1,11 @@
 import os
 import uuid
 from datetime import datetime
+#sqs
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
-from fastapi import UploadFile, HTTPException
+from fastapi import UploadFile
 
 load_dotenv()
 env = os.getenv
@@ -15,11 +16,11 @@ class S3Storage:
             's3',
             aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
             aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'),
-            region_name=env('AWS_REGION', 'us-west-2')
+            region_name=env('AWS_REGION')
         )
 
         self.bucket_name = env('S3_BUCKET_NAME')
-        self.presigned_url_expiry = 3600  # 1 hour
+        self.presigned_url_expiry = env('S3_PRESIGNED_URL_EXPIRY')
 
     def generate_pfp_key(self, user_id: int, filename: str) -> str:
         file_extension = os.path.splitext(filename)[1].lower()
@@ -37,7 +38,7 @@ class S3Storage:
             file: FastAPI UploadFile object containing the image
             
         Returns:
-            str: The S3 key for the uploaded file
+            str: The S3 key for the uploaded file (to be stored in the User table at pfp_key column)
         """
         try:
             file_extension = os.path.splitext(file.filename)[1].lower()
@@ -57,12 +58,11 @@ class S3Storage:
                 ACL='public-read'
             )
             
-            return s3_key # After calling this function, store this key in the User table at pfp_key column
+            return s3_key
             
-        except ClientError:
-            return "Failed to upload profile picture to S3"
+        except ClientError as e:
+            return f"Failed to upload profile picture to S3 ({e})"
 
-    # The returned URL is a temporary S3 link that can be used in <img src="url"> tags
     def get_pfp_url(self, s3_key: str) -> str:
         try:
             url = self.s3_client.generate_presigned_url(
@@ -76,8 +76,8 @@ class S3Storage:
 
             return url
             
-        except ClientError:
-            return "Failed to retrieve profile picture"
+        except ClientError as e:
+            return f"Failed to retrieve profile picture ({e})"
     
     def delete_pfp(self, s3_key: str) -> bool:
         try:
@@ -88,7 +88,7 @@ class S3Storage:
 
             return True
 
-        except ClientError:
-            return "Failed to remove profile picture"
+        except ClientError as e:
+            return f"Failed to remove profile picture ({e})"
 
 storage = S3Storage()
