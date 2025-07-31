@@ -1,0 +1,3 @@
+// for user feedback and developer response, initialilly fetch the api route if the state is empty. then, take the data and add it to the state to cache the data without having to call the api again
+// for user feedback, on the right side of the screen. settings will be on the left side of the screen
+// feedback ui: there will be a component that has a row layout. left side: user feedback ---> right side: developer response; the feedback is on the left side, then there will be an arrow that points to the developer response. each user developer response is displayed in a row
