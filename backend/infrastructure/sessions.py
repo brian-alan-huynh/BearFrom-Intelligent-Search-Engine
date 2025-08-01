@@ -16,14 +16,12 @@ redis_client = redis.Redis(
     password=os.getenv("REDIS_USER_PASS"),
 )
 
-# After user logs in:
-#   Search history, theme, and safesearch data is recorded in AWS RDS
-#   user_id is updated in Redis from -1 to the assigned user_id
 def add_new_session() -> str:
     session_id = str(uuid.uuid4())
     
     redis_client.hset(session_id, mapping={
         "user_id": -1,
+        "last_pinecone_vector_namespace": "",
         "logged_out_search_history": [],
         "logged_out_theme": "light",
         "logged_out_safesearch": "moderate",
@@ -37,23 +35,26 @@ def get_session(session_id: str) -> dict:
 
 def modify_session(
     session_id: str,
-    user_id: Optional[int] = None,
+    updated_user_id: Optional[int] = None,
+    updated_pinecone_vector_namespace: Optional[str] = None,
     new_query: Optional[str] = None,
-    theme: Optional[str] = None,
-    safesearch: Optional[str] = None,
+    updated_theme: Optional[str] = None,
+    updated_safesearch_mode: Optional[str] = None,
 ) -> bool:
     
-    if user_id:
-        redis_client.hset(session_id, "user_id", user_id)
+    if updated_user_id:
+        redis_client.hset(session_id, "user_id", updated_user_id)
+    if updated_pinecone_vector_namespace:
+        redis_client.hset(session_id, "last_pinecone_vector_namespace", updated_pinecone_vector_namespace)
     if new_query:
         redis_client.hset(
             session_id, 
             "logged_out_search_history", 
             redis_client.hgetall(session_id).logged_out_search_history.append(new_query)
         )
-    if theme:
-        redis_client.hset(session_id, "logged_out_theme", theme)
-    if safesearch:
-        redis_client.hset(session_id, "logged_out_safesearch", safesearch)
+    if updated_theme:
+        redis_client.hset(session_id, "logged_out_theme", updated_theme)
+    if updated_safesearch_mode:
+        redis_client.hset(session_id, "logged_out_safesearch", updated_safesearch_mode)
     
     return True

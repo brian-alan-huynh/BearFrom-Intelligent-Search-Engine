@@ -2,7 +2,7 @@ requests
 fastapi
 uvicorn
 python-dotenv
-pinecone
+pinecone[grpc]
 openai
 fastapi-csrf-protect
 redis[hiredis]
