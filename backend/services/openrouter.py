@@ -1,0 +1,1 @@
+# No need to implement messaging queue since the api will only run if brave api runs, in which case, the brave api has a messaging queue in place

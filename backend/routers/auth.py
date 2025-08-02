@@ -1,3 +1,3 @@
 # add route dedicated to pyotp
 # when a user logs in, in the frontend code, check if the cookie has a session_id. if so, call the route with the session_id as the parameter. the route is a post request and will respond with the session data using get_session(). extract the search history, theme, and safesearch settings. if the user_id isn't -1, it means they are signed in; in the frontend, call the routes from search.py and settings.py to fetch the settings of the theme and safesearch and the search history. if there is no cookie with a session_id, create a new session by calling add_session() and the route will respond with the session_id + the session data; store this session_id to cookie and the session data to settings-slice.ts
-
+# make sure to add a logout endpoint that clears the redis session; before sending this question, make the frontend retrieve the cookie that has the session key inside; make one logout route for authlib too

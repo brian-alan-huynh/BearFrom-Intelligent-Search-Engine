@@ -3,6 +3,7 @@ fastapi
 uvicorn
 python-dotenv
 pinecone[grpc]
+confluent-kafka
 openai
 fastapi-csrf-protect
 redis[hiredis]

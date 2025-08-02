@@ -5,3 +5,5 @@
 // for home page: links to directly search for the web, images, videos, or news; news stories below (takes up left section, 2/3 of the width); 1/3 of the rest of the the width, on the right side are example queries to try out. example queries box does not scroll and it stays fixed in place
 
 // constanly check if the cookie is empty. if there is a session id in the cookie, take the id and call redis endpoint. if not, call the route to create a new session id
+
+// if any errors arise (if the response is success: false), make a pop-up that can be closed by clicking on the OK button; make sure the pop-up is on the center top of the page, small in size. do not take up too much of the screen
