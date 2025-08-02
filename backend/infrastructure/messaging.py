@@ -1,10 +1,11 @@
 import os
 import json
+import time
 
 from confluent_kafka import Producer, Consumer
 from dotenv import load_dotenv
 
-from ..config import S3_CLIENT, BUCKET_NAME
+from ..config import S3_CLIENT, BUCKET_NAME, PC_INDEX
 
 load_dotenv()
 env = os.getenv
@@ -24,8 +25,7 @@ kafka_consumer = Consumer({
     "bootstrap.servers": env("KAFKA_BOOTSTRAP_SERVERS"),
     "group.id": "msg-queue-for-external-services",
     "auto.offset.reset": "earliest",
-    "enable.auto.commit": True,
-    "auto.commit.interval.ms": 1000,
+    "enable.auto.commit": False,
     "security.protocol": "SASL_SSL",
     "sasl.mechanisms": "PLAIN",
     "sasl.username": env("KAFKA_API_KEY"),
@@ -35,41 +35,89 @@ kafka_consumer = Consumer({
 kafka_consumer.subscribe([
     "s3.upload_pfp",
     "s3.delete_pfp",
+    "vector.add_to_vector_db",
+    "vector.delete_from_vector_db",
 ])
 
-BATCH_SIZE = 10
-RATE_LIMIT = 0.1
+BATCH_SIZE = 25
+RPS_LIMIT = 10
+SECONDS_PER_BATCH = BATCH_SIZE / RPS_LIMIT
 
-while True:
-    records = kafka_consumer.poll(timeout=2.0)
+def process_batch(messages: list):
+    success_messages = []
     
-    if not records:
-        records.sleep(2.0)
-        continue
-    
-    msg = json.loads(records.value().decode("utf-8"))
-    operation = msg["operation"]
-    
-    match operation:
-        case "upload_pfp":
-            s3_key = msg["s3_key"]
-            file_content = bytes.fromhex(msg["file_content"])
-            content_type = msg["content_type"]
+    for record in messages:
+        if record.error():
+            # Once backend is completed, add log here
+            continue
+        
+        try:
+            record_msg = json.loads(record.value().decode("utf-8"))
+            operation = record_msg.get("operation")
+        
+            match operation:
+                case "upload_pfp":
+                    s3_key = record_msg["s3_key"]
+                    file_content = bytes.fromhex(record_msg["file_content"])
+                    content_type = record_msg["content_type"]
+                
+                    S3_CLIENT.put_object(
+                        Bucket=BUCKET_NAME,
+                        Key=s3_key,
+                        Body=file_content,
+                        ContentType=content_type,
+                        ACL='public-read'
+                    )
+
+                case "delete_pfp":
+                    s3_key = record_msg["s3_key"]
+                    
+                    S3_CLIENT.delete_object(
+                        Bucket=BUCKET_NAME,
+                        Key=s3_key
+                    )
+                    
+                case "add_to_vector_db":
+                    namespace = record_msg["namespace"]
+                    vector_data = record_msg["vector_data"]
+                    
+                    PC_INDEX.upsert(vectors=vector_data, namespace=namespace)
+                    
+                case "delete_from_vector_db":
+                    namespace = record_msg["namespace"]
+                    PC_INDEX.delete(namespace=namespace)
+        
+                case _:
+                    # Once backend is completed, add log here
+                    continue
             
-            S3_CLIENT.put_object(
-                Bucket=BUCKET_NAME,
-                Key=s3_key,
-                Body=file_content,
-                ContentType=content_type,
-                ACL='public-read'
-            )
+            success_messages.append(record)
+        
+        except Exception as e:
+            # Once backend is completed, add log here
+            continue
+        
+    return True if success_messages else False
 
-        case "delete_pfp":
-            s3_key = msg["s3_key"]
+def run_consumer():
+    while True:
+        try:
+            start_time = time.time()
+            messages_batch = kafka_consumer.consume(BATCH_SIZE, timeout=2.0)
             
-            S3_CLIENT.delete_object(
-                Bucket=BUCKET_NAME,
-                Key=s3_key
-            )
+            if not messages_batch:
+                time.sleep(1.0)
+                continue
+            
+            processed_batch = process_batch(messages_batch)
+            
+            if processed_batch:
+                kafka_consumer.commit(asynchronous=False)
+            
+            elapsed_time = time.time() - start_time
+            time.sleep(max(0.0, SECONDS_PER_BATCH - elapsed_time))
 
-
+        except Exception as e:
+            # Once backend is completed, add log here
+            time.sleep(1.0)
+            continue
