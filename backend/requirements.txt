@@ -5,6 +5,7 @@ python-dotenv
 pinecone[grpc]
 confluent-kafka
 openai
+pandas
 fastapi-csrf-protect
 redis[hiredis]
 slowapi

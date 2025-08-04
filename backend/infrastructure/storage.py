@@ -52,7 +52,7 @@ class S3Storage:
         except ClientError as e:
             return f"Failed to upload profile picture to S3 ({e})"
 
-    def delete_pfp(self, s3_key: str) -> bool:
+    def delete_pfp(self, s3_key: str) -> str:
         try:
             message = {
                 "operation": "delete_pfp",
@@ -65,7 +65,7 @@ class S3Storage:
             )
             
             kafka_producer.flush()
-            return True
+            return "Profile picture removed successfully"
 
         except ClientError as e:
             return f"Failed to remove profile picture ({e})"
