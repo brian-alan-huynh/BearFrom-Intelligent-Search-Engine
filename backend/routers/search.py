@@ -2,4 +2,4 @@
 # use gemma 3 12b-it
 # use from fastapi.responses import StreamingResponse to stream the llm response
 # search on google for reference: openrouter api streaming python fastapi to frontend exxmaple
-# post endpoint will be sent back as a package, with brave search results and the blended search results
+# post endpoint will be sent back as a package, with brave search results and brave image results (images displayed on right side)

@@ -47,7 +47,7 @@ class Wiki:
                 "success": True,
                 "response": {
                     "title": data["title"],
-                    "snippet": data["extract"].split("==")[0].replace("\n", " "),
+                    "snippet": data["extract"].split("==")[0].replace(r"\n", " "),
                     "thumbnail": data["thumbnail"]["source"],
                 },
             }
@@ -220,67 +220,83 @@ class Wiki:
             }
             
     def get_wiki_see_also(title: str) -> list[dict[str, str]]:
-        res = req.get(
-            "https://en.wikipedia.org/w/index.php",
-            headers=self.headers,
-            params={
-                "title": title,
-                "action": "raw",
-            }
-        )
-        
-        if res.status_code != 200:
-            return {
-                "success": False,
-                "response": "Failed to get Wiki See Also results",
-            }
-        
-        page_text = response.text
-        page_text_lines = page_text.splitlines()
+        try:
+            res = req.get(
+                "https://en.wikipedia.org/w/index.php",
+                headers=self.headers,
+                params={
+                    "title": title,
+                    "action": "raw",
+                }
+            )
+            
+            if res.status_code != 200:
+                return {
+                    "success": False,
+                    "response": "Failed to get Wiki See Also results",
+                }
+            
+            page_text = response.text
+            page_text_lines = page_text.splitlines()
 
-        see_also_items = []
-        collecting = False
+            see_also_items = []
+            collecting = False
 
-        for i in range(len(page_text_lines) - 1, -1, -1):
-            line = page_text_lines[i].strip()
+            for i in range(len(page_text_lines) - 1, -1, -1):
+                line = page_text_lines[i].strip()
 
-            # Start collecting after reaching '== References ==' or '== Notes =='
-            if not collecting and re.match(r'^==\s*References\s*==$', line, re.IGNORECASE):
-                collecting = True
-                continue
-            elif not collecting and re.match(r'^==\s*Notes\s*==$', line, re.IGNORECASE):
-                collecting = True
-                continue
-
-            if collecting and re.match(r'^==\s*See also\s*==$', line, re.IGNORECASE):
-                break
-
-            if collecting:
-                if line.startswith('{{') or line.startswith('}}'):
+                # Start collecting after reaching '== References ==' or '== Notes =='
+                if not collecting and re.match(r"^==\s*References\s*==$", line, re.IGNORECASE):
+                    collecting = True
+                    continue
+                elif not collecting and re.match(r"^==\s*Notes\s*==$", line, re.IGNORECASE):
+                    collecting = True
                     continue
 
-                match = re.match(r'^\*\s*\[\[(.*?)\]\]', line)
+                if collecting and re.match(r"^==\s*See also\s*==$", line, re.IGNORECASE):
+                    break
 
-                if match:
-                    see_also_items.insert(0, match.group(1))
+                if collecting:
+                    if line.startswith("{{") or line.startswith("}}"):
+                        continue
 
-        see_also_items_data = []
+                    match = re.match(r"^\*\s*\[\[(.*?)\]\]", line)
+
+                    if match:
+                        see_also_items.insert(0, match.group(1))
+                        
+            if not see_also_items:
+                return {
+                    "success": False,
+                    "response": "Failed to get Wiki See Also results",
+                }
+
+            see_also_items_data = []
+            
+            for i in range(len(see_also_items)):
+                item = see_also_items[i]
+                
+                if '|' in item:
+                    item = item.split('|')[-1]
+                
+                wiki_result = get_wiki_result(item)
+                
+                if not wiki_result["success"]:
+                    see_also_items_data.append({ "title": item, "thumbnail": "" })
+                    continue
+                
+                see_also_items_data.append({
+                    "title": wiki_result["response"]["title"],
+                    "thumbnail": wiki_result["response"]["thumbnail"],
+                })
+
+            return {
+                "success": True,
+                "response": see_also_items_data,
+            }
         
-        for i in range(len(see_also_items)):
-            item = see_also_items[i]
-            
-            if '|' in item:
-                item = item.split('|')[-1]
-            
-            wiki_result = get_wiki_result(item)
-            
-            if not wiki_result["success"]:
-                see_also_items_data.append({ "title": item })
-                continue
-            
-            see_also_items_data.append({
-                "title": wiki_result["response"]["title"],
-                "thumbnail": wiki_result["response"]["thumbnail"],
-            })
-
-        return see_also_items_data
+        except Exception as e:
+            return {
+                "success": False,
+                "response": f"Failed to get Wiki See Also results ({e})",
+            }

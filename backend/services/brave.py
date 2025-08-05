@@ -4,6 +4,7 @@ import requests as req
 from dotenv import load_dotenv
 
 from .wiki import get_wiki_result, get_wiki_infobox_result, get_wiki_see_also
+from .tripadvisor import get_query_for_city_result
 
 load_dotenv()
 env = os.getenv
@@ -124,12 +125,37 @@ class Brave:
                 
                 if site_name == "Wikipedia":
                     shaved_title = title.replace(" - Wikipedia", "")
+
+                    if "wikipedia" not in blended_results:
+                        blended_results["wikipedia"] = []
+                        
+                    wiki_result = get_wiki_result(shaved_title)
+                    wiki_infobox = get_wiki_infobox_result(url)
+                    wiki_see_also = get_wiki_see_also(shaved_title)
                     
-                    blended_results["wiki"] = get_wiki_result(shaved_title)
-                    blended_results["wiki_infobox"] = get_wiki_infobox_result(url)
-                    blended_results["wiki_see_also"] = get_wiki_see_also(shaved_title)
+                    wiki_dict = {}
+                    
+                    if wiki_result["success"]:
+                        wiki_dict["wiki_result"] = wiki_result["response"]
+                    if wiki_infobox["success"]:
+                        wiki_dict["wiki_infobox"] = wiki_infobox["response"]
+                    if wiki_see_also["success"]:
+                        wiki_dict["wiki_see_also"] = wiki_see_also["response"]
+
+                    blended_results["wikipedia"].append(wiki_dict)
                 
-                if site_name == "Tripadivsor":
+                if site_name == "Tripadvisor":
+                    title_lower = title.lower()
+                    
+                    if "all you" in title or "before you go" in title:
+                        tripadvisor_results = get_place_results(title_lower, True, False, True)
+                        
+                        if "tripadvisor" not in blended_results:
+                            blended_results["tripadvisor"] = []
+                        
+                        blended_results["tripadvisor"].append(tripadvisor_results)
+                
+                if site_name == "TMDB":
                     pass
                 
                 web_res_filtered.append({
@@ -163,9 +189,71 @@ class Brave:
             
             search_results["web_results"] = web_res_filtered
             
+            if (
+                "why" not in query and
+                "are" not in query and
+                "can" not in query and
+                "if" not in query and
+                "should" not in query and
+                "could" not in query and
+                "would" not in query and
+                "were" not in query
+            ):
+                if (
+                    (
+                        any(keyword in query for keyword in ["hotel", "hostel", "resort", 
+                                                            "suite", "room", "motel"]) or
+                        (
+                            ("place" in query or "where" in query) and 
+                            "stay" in query
+                        )
+                    ) and
+                    (" in " in query or " at " in query)
+                ):
+                    if " in " in query:
+                        query_split = query.split(" in ")[-1]
+                    else:
+                        query_split = query.split(" at ")[-1]
+                    
+                    tripadvisor_results = get_place_results(query_split, True, False)
+                    
+                    if "tripadvisor" not in blended_results:
+                        blended_results["tripadvisor"] = []
+                    
+                    blended_results["tripadvisor"].append(tripadvisor_results)
+                
+                if (
+                    (
+                        any(keyword in query for keyword in ["restaurant", "fine dining", "dining", 
+                                                            "food", "breakfast", "lunch", "dinner"]) or
+                        ("take" in query and "out" in query) or
+                        (
+                            any(keyword in query for keyword in ["what", "where", "place"]) and
+                            "to" in query and
+                            "eat" in query
+                        )
+                    ) and
+                    (" in " in query or " at " in query)
+                ):
+                    if " in " in query:
+                        query_split = query.split(" in ")[-1]
+                    else:
+                        query_split = query.split(" at ")[-1]
+                        
+                    tripadvisor_results = get_place_results(query_split, False, True)
+                    
+                    if "tripadvisor" not in blended_results:
+                        blended_results["tripadvisor"] = []
+                        
+                    blended_results["tripadvisor"].append(tripadvisor_results)
+            
             return {
                 "success": True,
-                "response": { search_results, blended_results, extra_snippets },
+                "response": {
+                    "search_results": search_results,
+                    "blended_results": blended_results,
+                    "extra_snippets": extra_snippets,
+                },
             }
         
         except Exception as e:
