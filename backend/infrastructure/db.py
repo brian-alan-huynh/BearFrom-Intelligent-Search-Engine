@@ -61,7 +61,7 @@ class Database:
             provider: str,
             provider_id: str,
             password: Optional[str] = None, 
-        ) -> dict[str, bool | int | str]:
+        ) -> int | bool:
 
         db = self.SessionLocal()
 
@@ -81,52 +81,37 @@ class Database:
             db.commit()
             db.refresh(db_user)
 
-            return {
-                "success": True,
-                "response": db_user.id,
-            }
+            return db_user.id
 
-        except Exception as e:
+        except Exception:
             db.rollback()
-            return {
-                "success": False,
-                "response": f"Failed to create user ({e})",
-            }
+            return False
 
         finally:
             db.close()
 
-    def read_user(self, user_id: int) -> dict[str, bool | str | User]:
+    def read_user(self, user_id: int) -> dict[str, str | int] | bool:
         db = self.SessionLocal()
 
         try:
             db_user = db.query(User).filter(User.id == user_id).first()
 
             if not db_user:
-                return {
-                    "success": False,
-                    "response": "User not found",
-                }
+                return False
 
             return {
-                "success": True,
-                "response": {
-                    "username": db_user.username,
-                    "email": db_user.email,
-                    "s3_pfp_url": db_user.s3_pfp_url,
-                    "provider": db_user.provider,
-                    "provider_id": db_user.provider_id,
-                    "created_at": str(db_user.created_at),
-                    "updated_at": str(db_user.updated_at),
-                    "last_login_at": str(db_user.last_login_at),
-                },
+                "username": db_user.username,
+                "email": db_user.email,
+                "s3_pfp_url": db_user.s3_pfp_url,
+                "provider": db_user.provider,
+                "provider_id": db_user.provider_id,
+                "created_at": str(db_user.created_at),
+                "updated_at": str(db_user.updated_at),
+                "last_login_at": str(db_user.last_login_at),
             }
 
-        except Exception as e:
-            return {
-                "success": False,
-                "response": f"Failed to read user ({e})",
-            }
+        except Exception:
+            return False
 
         finally:
             db.close()
@@ -139,7 +124,7 @@ class Database:
             email: Optional[str] = None, 
             last_login_at: Optional[datetime] = None,
             s3_pfp_url: Optional[str] = None
-        ) -> dict[str, bool | str]:
+        ) -> bool:
 
         db = self.SessionLocal()
 
@@ -147,10 +132,7 @@ class Database:
             db_user = db.query(User).filter(User.id == user_id).first()
 
             if not db_user:
-                return {
-                    "success": False,
-                    "response": "User not found",
-                }
+                return False
             
             if username:
                 db_user.username = username
@@ -166,54 +148,39 @@ class Database:
             db.commit()
             db.refresh(db_user)
             
-            return {
-                "success": True,
-                "response": "User updated successfully",
-            }
+            return True
 
-        except Exception as e:
+        except Exception:
             db.rollback()
-            return {
-                "success": False,
-                "response": f"Failed to update user ({e})",
-            }
+            return False
 
         finally:
             db.close()
 
-    def delete_user(self, user_id: int) -> dict[str, bool | str]:
+    def delete_user(self, user_id: int) -> bool:
         db = self.SessionLocal()
 
         try:
             db_user = db.query(User).filter(User.id == user_id).first()
 
             if not db_user:
-                return {
-                    "success": False,
-                    "response": "User not found",
-                }
+                return False
 
             db.delete(db_user)
             db.commit()
 
-            return {
-                "success": True,
-                "response": "User deleted successfully",
-            }
+            return True
 
-        except Exception as e:
+        except Exception:
             db.rollback()
-            return {
-                "success": False,
-                "response": f"Failed to delete user ({e})",
-            }
+            return False
 
         finally:
             db.close()
 
 
     # UserPreferences table
-    def create_user_preference(self, user_id: int) -> dict[str, bool | str]:
+    def create_user_preference(self, user_id: int) -> bool:
         db = self.SessionLocal()
 
         try:
@@ -223,47 +190,32 @@ class Database:
             db.commit()
             db.refresh(db_user_preference)
 
-            return {
-                "success": True,
-                "response": "", # To be used internally; does not interact with the user
-            }
+            return True
         
-        except Exception as e:
+        except Exception:
             db.rollback()
-            return {
-                "success": False,
-                "response": "",
-            }
+            return False
         
         finally:
             db.close()
 
-    def read_user_preference(self, user_id: int) -> dict[str, bool | dict[str, str]]:
+    def read_user_preference(self, user_id: int) -> dict[str, str] | bool:
         db = self.SessionLocal()
 
         try:
             db_user_preference = db.query(UserPreferences).filter(UserPreferences.user_id == user_id).first()
 
             if not db_user_preference:
-                return {
-                    "success": False,
-                    "response": "User preference not found",
-                }
+                return False
 
             return {
-                "success": True,
-                "response": {
-                    "theme": db_user_preference.theme,
-                    "safesearch": db_user_preference.safesearch,
-                    "updated_at": str(db_user_preference.updated_at),
-                },
+                "theme": db_user_preference.theme,
+                "safesearch": db_user_preference.safesearch,
+                "updated_at": str(db_user_preference.updated_at),
             }
         
-        except Exception as e:
-            return {
-                "success": False,
-                "response": f"Failed to read user preference ({e})",
-            }
+        except Exception:
+            return False
 
         finally:
             db.close()
@@ -273,7 +225,7 @@ class Database:
             user_id: int, 
             theme: Optional[str] = None, 
             safesearch: Optional[str] = None
-        ) -> dict[str, bool | str]:
+        ) -> bool:
 
         db = self.SessionLocal()
 
@@ -281,10 +233,7 @@ class Database:
             db_user_preference = db.query(UserPreferences).filter(UserPreferences.user_id == user_id).first()
             
             if not db_user_preference:
-                return {
-                    "success": False,
-                    "response": "User preference not found",
-                }
+                return False
 
             if theme:
                 db_user_preference.theme = theme
@@ -294,23 +243,17 @@ class Database:
             db.commit()
             db.refresh(db_user_preference)
 
-            return {
-                "success": True,
-                "response": "User preference updated successfully",
-            }
+            return True
 
-        except Exception as e:
+        except Exception:
             db.rollback()
-            return {
-                "success": False,
-                "response": f"Failed to update user preference ({e})",
-            }
+            return False
 
         finally:
             db.close()
 
     # Authentication (Local accounts only; Google and GitHub accounts are handled by OAuth)
-    def check_login_credentials(self, username_or_email: str, password: str) -> dict[str, bool | str]:
+    def check_login_credentials(self, username_or_email: str, password: str) -> bool:
         db = self.SessionLocal()
 
         try:
@@ -320,32 +263,20 @@ class Database:
                 db_user = db.query(User).filter(User.email == username_or_email).first()
 
             if not db_user:
-                return {
-                    "success": False,
-                    "response": "User not found",
-                }
+                return False
 
             if not bcrypt.checkpw(password.encode("utf-8"), db_user.password.encode("utf-8")):
-                return {
-                    "success": False,
-                    "response": "Incorrect password",
-                }
+                return False
 
-            return {
-                "success": True,
-                "response": "Credentials are correct",
-            }
+            return True
 
-        except Exception as e:
-            return {
-                "success": False,
-                "response": f"Failed to check login credentials ({e})",
-            }
+        except Exception:
+            return False
 
         finally:
             db.close()
 
-    def login_after_successful_2fa(self, username_or_email: str) -> dict[str, bool | int]:
+    def login_after_successful_2fa(self, username_or_email: str) -> int | bool:
         db = self.SessionLocal()
 
         try:
@@ -359,23 +290,17 @@ class Database:
             db.commit()
             db.refresh(db_user)
 
-            return {
-                "success": True,
-                "response": db_user.id,
-            }
+            return db_user.id
 
-        except Exception as e:
+        except Exception:
             db.rollback()
-            return {
-                "success": False,
-                "response": f"Failed to login after successful 2FA ({e})",
-            }
+            return False
 
         finally:
             db.close()
 
     # UserSearchHistory table
-    def log_user_search(self, user_id: int, query: str) -> dict[str, bool | str]:
+    def log_user_search(self, user_id: int, query: str) -> bool:
         db = self.SessionLocal()
 
         try:
@@ -385,76 +310,52 @@ class Database:
             db.commit()
             db.refresh(db_user_search_history)
 
-            return {
-                "success": True,
-                "response": "",
-            }
+            return True
         
-        except Exception as e:
+        except Exception:
             db.rollback()
-            return {
-                "success": False,
-                "response": f"Failed to log search query ({e})",
-            }
+            return False
         
         finally:
             db.close()
     
-    def read_user_search_history(self, user_id: int) -> dict[str, bool | list[dict[str, str]]]:
+    def read_user_search_history(self, user_id: int) -> list[dict[str, str]] | bool:
         db = self.SessionLocal()
 
         try:
             db_user_search_history = db.query(UserSearchHistory).filter(UserSearchHistory.user_id == user_id).all()
 
             if not db_user_search_history:
-                return {
-                    "success": False,
-                    "response": "User search history not found",
-                }
+                return False
 
-            return {
-                "success": True,
-                "response": [
-                    { "query": query_record.query, "queried_at": str(query_record.queried_at) }
-                    for query_record in db_user_search_history
-                ],
-            }
+            return [
+                { "query": query_record.query, "queried_at": str(query_record.queried_at) }
+                for query_record in db_user_search_history
+            ]
         
-        except Exception as e:
-            return {
-                "success": False,
-                "response": f"Failed to read user search history ({e})",
-            }
+        except Exception:
+            return False
         
         finally:
             db.close()
 
-    def delete_user_search_history(self, user_id: int) -> dict[str, bool | str]:
+    def delete_user_search_history(self, user_id: int) -> bool:
         db = self.SessionLocal()
 
         try:
             db_user_search_history = db.query(UserSearchHistory).filter(UserSearchHistory.user_id == user_id).all()
 
             if not db_user_search_history:
-                return {
-                    "success": False,
-                    "response": "User search history not found",
-                }
+                return False
 
             db.delete(db_user_search_history)
             db.commit()
 
-            return {
-                "success": True,
-                "response": "User search history deleted successfully",
-            }
+            return True
         
-        except Exception as e:
+        except Exception:
             db.rollback()
-            return {
-                "success": False,
-                "response": f"Failed to delete user search history ({e})",
-            }
+            return False
         
         finally:
             db.close()

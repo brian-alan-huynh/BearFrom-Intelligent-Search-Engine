@@ -23,12 +23,12 @@ class S3Storage:
 
         return f"users/{user_id}/pfp/{timestamp}_{unique_id}{file_extension}"
 
-    async def upload_pfp(self, user_id: int, file: UploadFile) -> str:
+    async def upload_pfp(self, user_id: int, file: UploadFile) -> str | bool:
         try:
             file_extension = os.path.splitext(file.filename)[1].lower()
             
             if file_extension not in [".jpg", ".jpeg", ".png", ".gif"]:
-                return "Invalid file type. Only JPG, JPEG, PNG, and GIF are allowed."
+                return False
                 
             s3_key = self.generate_s3_key(user_id, file.filename)
             file_content = await file.read()
@@ -49,10 +49,10 @@ class S3Storage:
             
             return f"https://{BUCKET_NAME}.s3.{env('AWS_REGION')}.amazonaws.com/{s3_key}"
         
-        except ClientError as e:
-            return f"Failed to upload profile picture to S3 ({e})"
+        except ClientError:
+            return False
 
-    def delete_pfp(self, s3_key: str) -> str:
+    def delete_pfp(self, s3_key: str) -> bool:
         try:
             message = {
                 "operation": "delete_pfp",
@@ -65,7 +65,7 @@ class S3Storage:
             )
             
             kafka_producer.flush()
-            return "Profile picture removed successfully"
+            return True
 
-        except ClientError as e:
-            return f"Failed to remove profile picture ({e})"
+        except ClientError:
+            return False
