@@ -70,6 +70,7 @@ class Tripadvisor:
         self,
         places_results: list[dict[str, str]]
     ) -> list[dict[str, str] | list[dict[str, str] | list[str]]]:
+        
         try:
             places_details_results = []
             
@@ -138,6 +139,7 @@ class Tripadvisor:
         self,
         places_results: list[dict[str, str]]
     ) -> list[dict[str, list[str]]]:
+        
         try:
             places_images_results = []
             
@@ -180,6 +182,7 @@ class Tripadvisor:
         self,
         places_results: list[dict[str, str]]
     ) -> list[dict[str, str | list[str | dict[str, str]], dict[str, str]]]:
+        
         try:
             places_reviews_results = []
             
@@ -206,7 +209,28 @@ class Tripadvisor:
                 for review_data in data["data"]:
                     place_reviews.append({
                         "rating": review_data["rating"],
-                        
+                        "rating_image": review_data["rating_image_url"],
+                        "url_to_review": review_data["url"],
+                        "title": review_data["title"],
+                        "review_snippet": review_data["text"],
+                        "review_date": review_data["published_date"],
+                        "travel_date": review_data["travel_date"],
+                        "trip_type": review_data["trip_type"],
+                        "reviewer_username": review_data["user"]["username"],
+                        "reviewer_location": review_data["user"]["user_location"]["name"],
+                        "reviewer_pfp": review_data["user"]["avatar"]["original"],
+                        "summary_rating": [
+                            {
+                                "category": data["subratings"][k]["localized_name"],
+                                "rating_image": data["subratings"][k]["rating_image_url"],
+                                "rating": data["subratings"][k]["value"],
+                            }
+                            for k in data["subratings"].keys()
+                        ],
+                        "owner_response_snippet": review_data["owner_response"]["title"],
+                        "owner_response_title": review_data["owner_response"]["text"],
+                        "owner_response_name": review_data["owner_response"]["author"],
+                        "owner_response_date": review_data["owner_response"]["published_date"],
                     })
                     
                 places_reviews_results.append(place_reviews)
@@ -219,9 +243,28 @@ class Tripadvisor:
     def get_place_results(
         self,
         query: str,
-        hotel_search: bool,
-        eatery_search: bool,
-        from_title: bool = False    
+        eatery_search: bool = False,
+        from_title: bool = False
     ) -> dict[str, bool | dict[str, str]]:
-        pass
+        
+        if from_title:
+            query = self._query_for_hotels_in_city(query)
+        
+        place_type = "restaurants" if eatery_search else "hotels"
+        
+        places = self._query_places(query, place_type) # [{}, {}, {}]
+        details = self._get_place_details(places) # [{}, {}, {}]
+        images = self._get_place_images(places) # [[{}, {}, {}], [{}, {}, {}], [{}, {}, {}]]
+        reviews = self._get_place_reviews(places) # [[{}, {}, {}], [{}, {}, {}], [{}, {}, {}]]
+        
+        place_results = []
+        
+        for i in range(len(places)):
+            concat_place = places[i] | details[i]
+            concat_place["images"] = images[i]
+            concat_place["reviews"] = reviews[i]
+            
+            place_results.append(concat_place)
+        
+        return place_results
 

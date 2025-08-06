@@ -148,7 +148,7 @@ class Brave:
                     title_lower = title.lower()
                     
                     if "all you" in title or "before you go" in title:
-                        tripadvisor_results = get_place_results(title_lower, True, False, True)
+                        tripadvisor_results = get_place_results(title_lower, from_title=True)
                         
                         if "tripadvisor" not in blended_results:
                             blended_results["tripadvisor"] = []
@@ -210,12 +210,27 @@ class Brave:
                     ) and
                     (" in " in query or " at " in query)
                 ):
-                    if " in " in query:
-                        query_split = query.split(" in ")[-1]
-                    else:
-                        query_split = query.split(" at ")[-1]
+                    filtered_query = (
+                        query.replace("hotel", "")
+                        .replace("hotels", "")
+                        .replace("hostel", "")
+                        .replace("hostels", "")
+                        .replace("resort", "")
+                        .replace("resorts", "")
+                        .replace("suite", "")
+                        .replace("suites", "")
+                        .replace("room", "")
+                        .replace("rooms", "")
+                        .replace("motel", "")
+                        .replace("motels", "")
+                        .replace("place to stay", "")
+                        .replace("places to stay", "")
+                        .replace("where to stay", "")
+                        .replace(" in ", "")
+                        .replace(" at ", "")
+                    )
                     
-                    tripadvisor_results = get_place_results(query_split, True, False)
+                    tripadvisor_results = get_place_results(filtered_query)
                     
                     if "tripadvisor" not in blended_results:
                         blended_results["tripadvisor"] = []
@@ -235,12 +250,26 @@ class Brave:
                     ) and
                     (" in " in query or " at " in query)
                 ):
-                    if " in " in query:
-                        query_split = query.split(" in ")[-1]
-                    else:
-                        query_split = query.split(" at ")[-1]
+                    filtered_query = (
+                        query.replace("restaurant", "")
+                        .replace("restaurants", "")
+                        .replace("fine dining", "")
+                        .replace("dining", "")
+                        .replace("food", "")
+                        .replace("breakfast", "")
+                        .replace("lunch", "")
+                        .replace("dinner", "")
+                        .replace("take out", "")
+                        .replace("takeout", "")
+                        .replace("what to eat", "")
+                        .replace("where to eat", "")
+                        .replace("place to eat", "")
+                        .replace("places to eat", "")
+                        .replace(" in ", "")
+                        .replace(" at ", "")
+                    )
                         
-                    tripadvisor_results = get_place_results(query_split, False, True)
+                    tripadvisor_results = get_place_results(filtered_query, True)
                     
                     if "tripadvisor" not in blended_results:
                         blended_results["tripadvisor"] = []
