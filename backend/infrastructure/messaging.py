@@ -39,8 +39,8 @@ kafka_consumer.subscribe([
     "vector.delete_from_vector_db",
 ])
 
-BATCH_SIZE = 25
-RPS_LIMIT = 10
+BATCH_SIZE = 75
+RPS_LIMIT = 100
 SECONDS_PER_BATCH = BATCH_SIZE / RPS_LIMIT
 
 def process_batch(messages: list):
@@ -103,10 +103,10 @@ def run_consumer():
     while True:
         try:
             start_time = time.time()
-            messages_batch = kafka_consumer.consume(BATCH_SIZE, timeout=2.0)
+            messages_batch = kafka_consumer.consume(BATCH_SIZE, timeout=1.0)
             
             if not messages_batch:
-                time.sleep(1.0)
+                time.sleep(0.5)
                 continue
             
             processed_batch = process_batch(messages_batch)
