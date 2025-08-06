@@ -47,7 +47,7 @@ class Tripadvisor:
             )
             
             if res.status_code != 200:
-                raise Exception("Failed to get Tripadvisor Details results")
+                return []
             
             data = res.json()
         
@@ -63,13 +63,13 @@ class Tripadvisor:
             
             return places_results
         
-        except Exception as e:
-            raise Exception(f"Failed to get Tripadvisor Details results ({e})")
+        except Exception:
+            raise []
     
     def _get_place_details(
         self,
         places_results: list[dict[str, str]]
-    ) -> list[dict[str, str] | list[dict[str, str] | list[str]]]:
+    ) -> list[dict[str, str]]:
         
         try:
             places_details_results = []
@@ -87,7 +87,7 @@ class Tripadvisor:
                 )
                 
                 if res.status_code != 200:
-                    raise Exception("Failed to get Tripadvisor Details results")
+                    return []
                     
                 data = res.json()
                 
@@ -132,13 +132,13 @@ class Tripadvisor:
         
             return places_details_results
         
-        except Exception as e:
-            raise Exception(f"Failed to get Tripadvisor Details results ({e})")
+        except Exception:
+            return []
         
     def _get_place_images(
         self,
         places_results: list[dict[str, str]]
-    ) -> list[dict[str, list[str]]]:
+    ) -> list[list[dict[str, str]]]:
         
         try:
             places_images_results = []
@@ -157,7 +157,7 @@ class Tripadvisor:
                 )
                 
                 if res.status_code != 200:
-                    raise Exception("Failed to get Tripadvisor Image results")
+                    return []
                 
                 data = res.json()
                 
@@ -175,13 +175,13 @@ class Tripadvisor:
                 
             return places_images_results
             
-        except Exception as e:
-            raise Exception(f"Failed to get Tripadvisor Image results ({e})")
+        except Exception:
+            return []
         
     def _get_place_reviews(
         self,
         places_results: list[dict[str, str]]
-    ) -> list[dict[str, str | list[str | dict[str, str]], dict[str, str]]]:
+    ) -> list[list[dict[str, str | dict[str, str]]]]:
         
         try:
             places_reviews_results = []
@@ -200,7 +200,7 @@ class Tripadvisor:
                 )
                 
                 if res.status_code != 200:
-                    raise Exception("Failed to get Tripadvisor Review results")
+                    return []
                 
                 data = res.json()
                 
@@ -237,34 +237,42 @@ class Tripadvisor:
             
             return places_reviews_results
         
-        except Exception as e:
-            raise Exception(f"Failed to get Tripadvisor Review results ({e})") 
+        except Exception:
+            return []
 
     def get_place_results(
         self,
         query: str,
         eatery_search: bool = False,
         from_title: bool = False
-    ) -> dict[str, bool | dict[str, str]]:
+    ) -> dict[str, dict[str, str]]:
+        query = query.lower()
         
         if from_title:
             query = self._query_for_hotels_in_city(query)
         
         place_type = "restaurants" if eatery_search else "hotels"
         
-        places = self._query_places(query, place_type) # [{}, {}, {}]
-        details = self._get_place_details(places) # [{}, {}, {}]
-        images = self._get_place_images(places) # [[{}, {}, {}], [{}, {}, {}], [{}, {}, {}]]
-        reviews = self._get_place_reviews(places) # [[{}, {}, {}], [{}, {}, {}], [{}, {}, {}]]
+        places = self._query_places(query, place_type)
+        details = self._get_place_details(places)
+        images = self._get_place_images(places)
+        reviews = self._get_place_reviews(places)
         
-        place_results = []
+        results = []
         
         for i in range(len(places)):
+            if not details:
+                continue
+            if not images:
+                continue
+            if not reviews:
+                continue
+            
             concat_place = places[i] | details[i]
             concat_place["images"] = images[i]
             concat_place["reviews"] = reviews[i]
             
-            place_results.append(concat_place)
+            results.append(concat_place)
         
-        return place_results
+        return results
 

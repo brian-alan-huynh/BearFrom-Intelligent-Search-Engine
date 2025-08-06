@@ -3,8 +3,9 @@ import os
 import requests as req
 from dotenv import load_dotenv
 
-from .wiki import get_wiki_result, get_wiki_infobox_result, get_wiki_see_also
-from .tripadvisor import get_query_for_city_result
+from .wiki import get_wiki_result
+from .tripadvisor import get_place_results
+from .tmdb import get_tmdb_results
 
 load_dotenv()
 env = os.getenv
@@ -30,7 +31,7 @@ class Brave:
     def _get_url(self, search_type: str) -> str:
         return f"https://api.search.brave.com/res/v1/{search_type}/search"
             
-    def get_web_results(self, query: str, safesearch: str): # fetch the safesearch preferences by calling s3 method in the route logic
+    def get_web_results(self, query: str, safesearch: str) -> dict[str, dict[str, str] | list[dict[str, str]]] | bool: # fetch the safesearch preferences by calling s3 method in the route logic
         try:
             res = req.get(
                 self._get_url("web"),
@@ -44,10 +45,7 @@ class Brave:
             )
             
             if res.status_code != 200:
-                return {
-                    "success": False,
-                    "response": "Failed to get web results",
-                }
+                return False
             
             data = res.json()
             
@@ -124,30 +122,18 @@ class Brave:
                 site_name = web_res["profile"]["name"]
                 
                 if site_name == "Wikipedia":
-                    shaved_title = title.replace(" - Wikipedia", "")
+                    if "- Wikipedia" in title:
+                        wiki_result = get_wiki_result(title, url)
 
-                    if "wikipedia" not in blended_results:
-                        blended_results["wikipedia"] = []
-                        
-                    wiki_result = get_wiki_result(shaved_title)
-                    wiki_infobox = get_wiki_infobox_result(url)
-                    wiki_see_also = get_wiki_see_also(shaved_title)
-                    
-                    wiki_dict = {}
-                    
-                    if wiki_result["success"]:
-                        wiki_dict["wiki_result"] = wiki_result["response"]
-                    if wiki_infobox["success"]:
-                        wiki_dict["wiki_infobox"] = wiki_infobox["response"]
-                    if wiki_see_also["success"]:
-                        wiki_dict["wiki_see_also"] = wiki_see_also["response"]
+                        if "wikipedia" not in blended_results:
+                            blended_results["wikipedia"] = []
 
-                    blended_results["wikipedia"].append(wiki_dict)
+                        blended_results["wikipedia"].append(wiki_result)
                 
                 if site_name == "Tripadvisor":
                     title_lower = title.lower()
                     
-                    if "all you" in title or "before you go" in title:
+                    if "all you" in title_lower or "before you go" in title_lower:
                         tripadvisor_results = get_place_results(title_lower, from_title=True)
                         
                         if "tripadvisor" not in blended_results:
@@ -155,8 +141,14 @@ class Brave:
                         
                         blended_results["tripadvisor"].append(tripadvisor_results)
                 
-                if site_name == "TMDB":
-                    pass
+                if site_name == "IMDb":
+                    if "(" in title and "|" in title:
+                        tmdb_result = get_tmdb_results(title)
+                        
+                        if "tmdb" not in blended_results:
+                            blended_results["tmdb"] = []
+                            
+                        blended_results["tmdb"].append(tmdb_result)
                 
                 web_res_filtered.append({
                     "title": title,
@@ -277,21 +269,15 @@ class Brave:
                     blended_results["tripadvisor"].append(tripadvisor_results)
             
             return {
-                "success": True,
-                "response": {
-                    "search_results": search_results,
-                    "blended_results": blended_results,
-                    "extra_snippets": extra_snippets,
-                },
+                "search_results": search_results,
+                "blended_results": blended_results,
+                "extra_snippets": extra_snippets,
             }
         
-        except Exception as e:
-            return {
-                "success": False,
-                "response": f"Failed to get web results ({e})",
-            }
+        except Exception:
+            return False
 
-    def get_suggest_results(self, query: str) -> dict[str, bool | list[str]]:
+    def get_suggest_results(self, query: str) -> list[str] | bool:
         try:
             res = req.get(
                 self._get_url("suggest"),
@@ -303,10 +289,7 @@ class Brave:
             )
 
             if res.status_code != 200:
-                return {
-                    "success": False,
-                    "response": "Failed to get suggest results",
-                }
+                return []
             
             data = res.json()
             
@@ -315,13 +298,7 @@ class Brave:
                 for query_obj in data["results"]
             ]
 
-            return {
-                "success": True,
-                "response": suggested_queries,
-            }
+            return suggested_queries
         
-        except Exception as e:
-            return {
-                "success": False,
-                "response": f"Failed to get suggest results ({e})",
-            }
+        except Exception:
+            return False

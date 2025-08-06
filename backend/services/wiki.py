@@ -17,7 +17,7 @@ class Wiki:
             "Accept-Language": "en-US",
         }
 
-    def get_wiki_result(title: str) -> dict[str, str]:
+    def _get_wiki_summary_result(self, title: str) -> dict[str, str]:
         try:
             res = req.get(
                 "https://en.wikipedia.org/w/api.php",
@@ -33,10 +33,7 @@ class Wiki:
             )
             
             if res.status_code != 200:
-                return {
-                    "success": False,
-                    "response": "Failed to get Wiki results",
-                }
+                return {}
             
             res_data = res.json()
             
@@ -44,21 +41,15 @@ class Wiki:
             data = res_data["query"]["pages"][res_page_data_key[0]]
             
             return {
-                "success": True,
-                "response": {
-                    "title": data["title"],
-                    "snippet": data["extract"].split("==")[0].replace(r"\n", " "),
-                    "thumbnail": data["thumbnail"]["source"],
-                },
+                "title": data["title"],
+                "snippet": data["extract"].split("==")[0].replace(r"\n", " "),
+                "thumbnail": data["thumbnail"]["source"],
             }
             
-        except Exception as e:
-            return {
-                "success": False,
-                "response": f"Failed to get Wiki results ({e})",
-            }
+        except Exception:
+            return {}
             
-    def _filter_infobox_coords(coord: str) -> str:
+    def _filter_infobox_coords(self, coord: str) -> str:
         coord_split = coord.split('/')[-1]
 
         decimal_coord = ''
@@ -90,7 +81,7 @@ class Wiki:
 
         return ' '.join(decimal_coord_split)
     
-    def get_wiki_infobox_result(url: str) -> dict[str, str | dict[str, str]]:
+    def _get_wiki_infobox_result(self, url: str) -> dict[str, str]:
         try:
             infoboxes = pd.read_html(url, attrs={"class": "infobox"})
             
@@ -113,7 +104,7 @@ class Wiki:
                         continue
 
                     if "Coordinates" in first_col_row:
-                        filtered_wiki_infobox["Coordinates"] = _filter_infobox_coords(second_col_row)
+                        filtered_wiki_infobox["Coordinates"] = self._filter_infobox_coords(second_col_row)
                         continue
 
                     if (
@@ -202,24 +193,15 @@ class Wiki:
 
                     filtered_wiki_infobox[first_col_row] = second_col_row
                 
-                return {
-                    "success": True,
-                    "response": filtered_wiki_infobox,
-                }
+                return filtered_wiki_infobox
                 
             else:
-                return {
-                    "success": False,
-                    "response": "Failed to get Wiki Infobox results",
-                }
+                return {}
         
-        except Exception as e:
-            return {
-                "success": False,
-                "response": f"Failed to get Wiki Infobox results ({e})",
-            }
+        except Exception:
+            return {}
             
-    def get_wiki_see_also(title: str) -> list[dict[str, str]]:
+    def _get_wiki_see_also(self, title: str) -> list[dict[str, str]]:
         try:
             res = req.get(
                 "https://en.wikipedia.org/w/index.php",
@@ -231,10 +213,7 @@ class Wiki:
             )
             
             if res.status_code != 200:
-                return {
-                    "success": False,
-                    "response": "Failed to get Wiki See Also results",
-                }
+                return []
             
             page_text = response.text
             page_text_lines = page_text.splitlines()
@@ -266,37 +245,43 @@ class Wiki:
                         see_also_items.insert(0, match.group(1))
                         
             if not see_also_items:
-                return {
-                    "success": False,
-                    "response": "Failed to get Wiki See Also results",
-                }
+                return []
 
             see_also_items_data = []
             
-            for i in range(len(see_also_items)):
-                item = see_also_items[i]
+            for item in see_also_items:
+                item = item.split('|')[-1] if "|" in item else item
                 
-                if '|' in item:
-                    item = item.split('|')[-1]
+                wiki_result = self._get_wiki_summary_result(item)
                 
-                wiki_result = get_wiki_result(item)
-                
-                if not wiki_result["success"]:
+                if not wiki_result:
                     see_also_items_data.append({ "title": item, "thumbnail": "" })
                     continue
                 
                 see_also_items_data.append({
-                    "title": wiki_result["response"]["title"],
-                    "thumbnail": wiki_result["response"]["thumbnail"],
+                    "title": wiki_result["title"],
+                    "thumbnail": wiki_result["thumbnail"],
                 })
 
-            return {
-                "success": True,
-                "response": see_also_items_data,
-            }
+            return see_also_items_data
         
-        except Exception as e:
-            return {
-                "success": False,
-                "response": f"Failed to get Wiki See Also results ({e})",
-            }
+        except Exception:
+            return []
+
+    def get_wiki_result(
+        self,
+        title: str,
+        url: str
+    ) -> dict[str, str | dict[str, str]]:
+        title = title.replace(" - Wikipedia", "")
+        
+        summary = self._get_wiki_summary_result(title)
+        infobox = self._get_wiki_infobox_result(url)
+        see_also = self._get_wiki_see_also(title)
+        
+        result = {}
+        
+        result = summary | infobox
+        result["see_also"] = see_also
+        
+        return result
