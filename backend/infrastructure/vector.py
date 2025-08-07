@@ -5,7 +5,8 @@ import json
 
 import openai
 
-from ..config import kafka_producer, PC_INDEX
+from .messaging import kafka_producer
+from ..config import PC_INDEX
 
 load_dotenv()
 env = os.getenv
@@ -52,7 +53,7 @@ class Vector:
         
             return namespace
     
-        except Exception as e:
+        except Exception:
             return False
 
     def convert_query_to_vector_embed(self, query: str) -> list[float]:
@@ -78,7 +79,7 @@ class Vector:
                 for count, result in enumerate(results['matches'], start=1)
             ]
     
-        except Exception as e:
+        except Exception:
             return False
 
     def delete_from_vector_db(self, namespace: str) -> None:
