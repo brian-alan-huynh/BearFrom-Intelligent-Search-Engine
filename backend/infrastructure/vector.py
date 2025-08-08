@@ -13,18 +13,17 @@ env = os.getenv
 
 openai.api_key = env("OAI_API_KEY")
 class Vector:
-    def __init__(self):
-        self.openai = openai
-
-    def convert_to_vector_embed(self, texts: list[str]) -> list[list[float]]:
-        response = self.openai.embeddings.create(
+    @staticmethod
+    def convert_to_vector_embed(texts: list[str]) -> list[list[float]]:
+        response = openai.embeddings.create(
             model="text-embedding-3-small",
             input=texts,
         )
     
         return [e.embedding for e in response.data]
 
-    def add_to_vector_db(self, texts: list[str], vector_embeds: list[list[float]]) -> str | bool:
+    @staticmethod
+    def add_to_vector_db(texts: list[str], vector_embeds: list[list[float]]) -> str | bool:
         try:
             namespace = str(uuid.uuid4())
             count = 0
@@ -56,15 +55,17 @@ class Vector:
         except Exception:
             return False
 
-    def convert_query_to_vector_embed(self, query: str) -> list[float]:
-        response = self.openai.embeddings.create(
+    @staticmethod
+    def convert_query_to_vector_embed(query: str) -> list[float]:
+        response = openai.embeddings.create(
             model="text-embedding-3-small",
             input=query,
         )
     
         return response.data[0].embedding
 
-    def query_from_vector_db(self, vector_query: list[float], namespace: str) -> list[str] | bool:
+    @staticmethod
+    def query_from_vector_db(vector_query: list[float], namespace: str) -> list[str] | bool:
         try:
             results = PC_INDEX.query(
                 vector=vector_query,
@@ -82,7 +83,8 @@ class Vector:
         except Exception:
             return False
 
-    def delete_from_vector_db(self, namespace: str) -> None:
+    @staticmethod
+    def delete_from_vector_db(namespace: str) -> None:
         message = {
             "operation": "delete_from_vector_db",
             "namespace": namespace,

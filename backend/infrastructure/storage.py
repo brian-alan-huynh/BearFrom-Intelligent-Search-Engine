@@ -13,24 +13,23 @@ from .messaging import kafka_producer
 load_dotenv()
 env = os.getenv
 class S3Storage:
-    def __init__(self):
-        pass
-
-    def generate_s3_key(self, user_id: int, filename: str) -> str:
+    @staticmethod
+    def _generate_s3_key(user_id: int, filename: str) -> str:
         file_extension = os.path.splitext(filename)[1].lower()
         unique_id = str(uuid.uuid4())
         timestamp = int(datetime.now().timestamp())
 
         return f"users/{user_id}/pfp/{timestamp}_{unique_id}{file_extension}"
 
-    async def upload_pfp(self, user_id: int, file: UploadFile) -> str | bool:
+    @classmethod
+    async def upload_pfp(cls, user_id: int, file: UploadFile) -> str | bool:
         try:
             file_extension = os.path.splitext(file.filename)[1].lower()
             
             if file_extension not in [".jpg", ".jpeg", ".png", ".gif"]:
                 return False
                 
-            s3_key = self.generate_s3_key(user_id, file.filename)
+            s3_key = cls._generate_s3_key(user_id, file.filename)
             file_content = await file.read()
             
             message = {
@@ -52,7 +51,8 @@ class S3Storage:
         except ClientError:
             return False
 
-    def delete_pfp(self, s3_key: str) -> bool:
+    @staticmethod
+    def delete_pfp(s3_key: str) -> bool:
         try:
             message = {
                 "operation": "delete_pfp",
