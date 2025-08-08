@@ -37,5 +37,3 @@ if not PC.has_index(PC_INDEX_NAME):
     )
 
 PC_INDEX: Final[Pinecone.Index] = PC.Index(PC_INDEX_NAME)
-
-# 
