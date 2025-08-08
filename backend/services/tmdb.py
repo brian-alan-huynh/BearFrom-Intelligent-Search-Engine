@@ -1,4 +1,3 @@
-from multiprocessing import connection
 import os
 
 import requests as req
