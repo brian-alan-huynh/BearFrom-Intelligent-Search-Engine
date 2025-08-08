@@ -36,7 +36,7 @@ class UserPreferences(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    theme = Column(String, default="light", nullable=False) # Light, Dark, Beige
+    theme = Column(String, default="light", nullable=False) # Light, Dark
     safesearch = Column(String, default="moderate", nullable=False) # Off, Moderate, Strict
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), nullable=False)
 
