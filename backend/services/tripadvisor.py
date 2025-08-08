@@ -245,7 +245,8 @@ class Tripadvisor:
         query: str,
         eatery_search: bool = False,
         from_title: bool = False
-    ) -> dict[str, dict[str, str]]:
+    ) -> list[dict[str, str | int | list[str] | dict[str, str]]]:
+        
         query = query.lower()
         
         if from_title:

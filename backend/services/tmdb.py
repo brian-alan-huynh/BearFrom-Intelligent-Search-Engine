@@ -243,6 +243,7 @@ class TMDB:
         content_info = content_summary | content_details
         content_info["images"] = content_images
         content_info["reviews"] = content_reviews
+        content_info["content_type"] = content_summary["_type"]
         
         return content_info
         

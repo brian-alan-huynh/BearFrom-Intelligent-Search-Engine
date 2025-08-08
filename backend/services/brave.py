@@ -1,4 +1,5 @@
 import os
+from socket import getservbyport
 
 import requests as req
 from dotenv import load_dotenv
@@ -57,6 +58,7 @@ class Brave:
             search_results = {}
             blended_results = {}
             extra_snippets = []
+            coords_for_mapbox_display = []
             
             search_results["og_query"] = data["query"]["original"]
             search_results["corrected_query"] = data["query"]["altered"] if data["query"]["altered"] else ""
@@ -135,6 +137,9 @@ class Brave:
                             blended_results["wikipedia"] = []
 
                         blended_results["wikipedia"].append(wiki_result)
+
+                        if "Coordinates" in wiki_result["infobox"]:
+                            coords_for_mapbox_display.append(wiki_result["infobox"]["Coordinates"])
                 
                 if site_name == "Tripadvisor":
                     title_lower = title.lower()
@@ -156,8 +161,54 @@ class Brave:
                             
                         blended_results["tmdb"].append(tmdb_result)
                         
+                if site_name == "Yahoo! Finance":
+                    if "(" in title and "Stock Price" in title:
+                        ticker = title.split("(")[1].split(")")[0]
+                        
+                        if "trading_view" not in blended_results:
+                            blended_results["trading_view"] = []
+                            
+                        blended_results["trading_view"].append(ticker)
                 
+                if site_name == "Xe":
+                    if "to" in title and "-" in title and "Exchange Rate" in title:
+                        title_split = title.split(" ")
+                        pair = ""
+                        
+                        for i in range(len(title_split)):
+                            if title_split[i] == "to":
+                                pair += f"{title_split[i-1]}{title_split[i+1]}"
+                                break
+                        
+                        if "trading_view" not in blended_results:
+                            blended_results["trading_view"] = []
+                            
+                        blended_results["trading_view"].append(pair)
+                        
+                if site_name == "TRADING ECONOMICS":
+                    if  "-" in title and "Price" in title and "Chart" in title and "News" in title:
+                        commodity = "".join(title.split("-")[0].split(" ")).upper()
+                        
+                        if "trading_view" not in blended_results:
+                            blended_results["trading_view"] = []
+                            
+                        blended_results["trading_view"].append(commodity)
+                        
+                if site_name == "CoinMarketCap":
+                    if "price today" in title and "to" in title and "live price" in title:
+                        title_split = title.split(" ")
+                        crypto = ""
+                        
+                        for i in range(len(title_split)):
+                            if title_split[i] == "to":
+                                crypto += f"{title_split[i-1]}{title_split[i+1]}"
+                                break
+                        
+                        if "trading_view" not in blended_results:
+                            blended_results["trading_view"] = []
                 
+                        blended_results["trading_view"].append(crypto)
+                        
                 web_res_filtered.append({
                     "title": title,
                     "url": url,

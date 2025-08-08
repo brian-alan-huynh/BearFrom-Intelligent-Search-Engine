@@ -279,9 +279,7 @@ class Wiki:
         infobox = self._get_wiki_infobox_result(url)
         see_also = self._get_wiki_see_also(title)
         
-        result = {}
+        summary["infobox"] = infobox
+        summary["see_also"] = see_also
         
-        result = summary | infobox
-        result["see_also"] = see_also
-        
-        return result
+        return summary
