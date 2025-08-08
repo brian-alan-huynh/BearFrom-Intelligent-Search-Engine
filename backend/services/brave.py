@@ -31,14 +31,19 @@ class Brave:
     def _get_url(self, search_type: str) -> str:
         return f"https://api.search.brave.com/res/v1/{search_type}/search"
             
-    def get_web_results(self, query: str, safesearch: str) -> dict[str, dict[str, str] | list[dict[str, str]]] | bool: # fetch the safesearch preferences by calling s3 method in the route logic
+    def get_web_results(
+        self,
+        query: str,
+        safesearch_mode: str
+    ) -> dict[str, dict[str, str] | list[dict[str, str]]] | bool:
+        
         try:
             res = req.get(
                 self._get_url("web"),
                 headers=self.search_headers,
                 params={
                     "q": query,
-                    "safesearch": safesearch,
+                    "safesearch": safesearch_mode,
                     "units": "imperial",
                     "extra_snippets": True,
                 },
@@ -120,6 +125,7 @@ class Brave:
                 title = web_res["title"]
                 url = web_res["url"]
                 site_name = web_res["profile"]["name"]
+                snippet = web_res["description"]
                 
                 if site_name == "Wikipedia":
                     if "- Wikipedia" in title:
@@ -149,11 +155,13 @@ class Brave:
                             blended_results["tmdb"] = []
                             
                         blended_results["tmdb"].append(tmdb_result)
+                        
+                
                 
                 web_res_filtered.append({
                     "title": title,
                     "url": url,
-                    "snippet": web_res["description"],
+                    "snippet": snippet,
                     "created_date": web_res["page_age"] if web_res["page_age"] else "",
                     "site_name": site_name,
                     "favicon": (
