@@ -58,7 +58,7 @@ class Tripadvisor:
                     "name": place["name"],
                     "city": place["address_obj"]["city"],
                     "address": place["address_obj"]["address_string"],
-                    "location_id": place["location_id"],
+                    "_id": place["location_id"],
                 })
             
             return places_results
@@ -75,10 +75,10 @@ class Tripadvisor:
             places_details_results = []
             
             for place in places_results:
-                location_id = place["location_id"]
+                id = place["_id"]
             
                 res = req.get(
-                    f"https://api.content.tripadvisor.com/api/v1/location/{location_id}/details",
+                    f"https://api.content.tripadvisor.com/api/v1/location/{id}/details",
                     headers=self.headers,
                     params={
                         "key": env("TRIPADVISOR_API_KEY"),
@@ -144,10 +144,10 @@ class Tripadvisor:
             places_images_results = []
             
             for place in places_results:
-                location_id = place["location_id"]
+                id = place["_id"]
                     
                 res = req.get(
-                    f"https://api.content.tripadvisor.com/api/v1/location/{location_id}/photos",
+                    f"https://api.content.tripadvisor.com/api/v1/location/{id}/photos",
                     headers=self.headers,
                     params={
                         "key": env("TRIPADVISOR_API_KEY"),
@@ -187,10 +187,10 @@ class Tripadvisor:
             places_reviews_results = []
             
             for place in places_results:
-                location_id = place["location_id"]
+                id = place["_id"]
                 
                 res = req.get(
-                    f"https://api.content.tripadvisor.com/api/v1/location/{location_id}/reviews",
+                    f"https://api.content.tripadvisor.com/api/v1/location/{id}/reviews",
                     headers=self.headers,
                     params={
                         "key": env("TRIPADVISOR_API_KEY"),
@@ -212,7 +212,7 @@ class Tripadvisor:
                         "rating_image": review_data["rating_image_url"],
                         "url_to_review": review_data["url"],
                         "title": review_data["title"],
-                        "review_snippet": review_data["text"],
+                        "review_snippet": review_data["text"][:len(review_data["text"]) // 2] + "...",
                         "review_date": review_data["published_date"],
                         "travel_date": review_data["travel_date"],
                         "trip_type": review_data["trip_type"],
